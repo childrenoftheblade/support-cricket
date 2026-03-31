@@ -20,5 +20,11 @@ Support Cricket is a Discord bot that uses private threads ('tickets') to let st
 Replace `YOUR_BOT_TOKEN` and `YOUR_BOT_ID` with their respective credentials.
 
 4. Run `node index.js`
+## Usage
+1. Set the channel where the button used to open tickets will be sent using `/ticket channel`. This will also be the channel ticket threads are created under. Make sure members have the `View Channel` and `Send Messages in Threads` permissions.
+2. Set the role that will be pinged when a ticket is opened with `/ticket ping`. If all your staff are fine with being pinged for this, you can just set it to the staff role; otherwise, you might want to set it to a separate opt-in role.
+3. Optionally set the staff role with `/ticket staff`. This will allow users with the set role to open tickets for others.
+
+You can view the current configuration with `/ticket config`. Members can open tickets either by using the button in the set ticket channel or using `/ticket open`. If you want to open a ticket for another user, there is an optional user field. To close a ticket and make it read-only, use `/ticket close`.
 ## Support
-DM me on Discord @childrenoftheblade or create an issue.
+DM me on Discord @childrenoftheblade or create an issue. Feel free to request features as well.
