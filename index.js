@@ -213,7 +213,7 @@ async function hasStaffRole(interaction) {
   const staffCheckRole = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
   const staffCheckRoleId = staffCheckRole?.roleId;
   // Check if the user has the staff role or is an administrator
-  if ((staffCheckRoleId && interaction.member.roles.cache.has(staffCheckRoleId)) || interaction.member.permissions.has('Administrator')) {
+  if ((staffCheckRoleId && interaction.member.roles.cache.has(staffCheckRoleId)) || interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
     return true;
   } 
   return false;
