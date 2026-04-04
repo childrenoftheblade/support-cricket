@@ -159,33 +159,33 @@ async function cmdPing(interaction) {
         flags: MessageFlags.Ephemeral 
       });
     }
-  const newPingRole = interaction.options.getRole('role', true)
-  const oldPingRole = await PingRole.findOne();
-  if (oldPingRole || !newPingRole) {
+  const pingRoleConfig = interaction.options.getRole('role', true)
+  const pingRoleOld = await PingRole.findOne();
+  if (pingRoleOld || !pingRoleConfig) {
     try {
       PingRole.destroy({ where: { server: interaction.member.guild.id } });
     } catch (error) {
       console.error('Error removing previous ping role from configuration:', error)
     }
   }
-  if (newPingRole) {
+  if (pingRoleConfig) {
     try {
       await PingRole.create({
-        roleId: newPingRole.id,
+        roleId: pingRoleConfig.id,
         server: interaction.member.guild.id
       })
     } catch (error) {
       console.error('Error setting new ping role:', error)
     }
-    interaction.reply({ content: `Ping role has been set to ${newPingRole}`, flags: MessageFlags.Ephemeral})
+    interaction.reply({ content: `Ping role has been set to ${pingRoleConfig}`, flags: MessageFlags.Ephemeral})
   }
 }
 
 async function cmdStaff(interaction) {
   if (interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-    const newPingRole = interaction.options.getRole('role', true)
-    const role = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
-    if (role) {
+    const staffRoleConfig = interaction.options.getRole('role', true)
+    const staffRoleOld = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
+    if (staffRoleOld) {
       try {
         StaffRole.destroy({ where: { server: interaction.member.guild.id } });
       } catch (error) {
@@ -194,13 +194,13 @@ async function cmdStaff(interaction) {
     }
     try {
       await StaffRole.create({
-        roleId: newPingRole.id,
+        roleId: staffRoleConfig.id,
         server: interaction.member.guild.id
       }) 
     } catch (error) {
       console.error('Error setting new staff role:', error)
     }
-    interaction.reply({ content: `Staff role has been set to ${newPingRole}`, flags: MessageFlags.Ephemeral})
+    interaction.reply({ content: `Staff role has been set to ${staffRoleConfig}`, flags: MessageFlags.Ephemeral})
   } else {
     interaction.reply({ 
       content: 'You need admin permissions to set the staff role.', 
