@@ -1,4 +1,3 @@
-// Require the necessary discord.js classes
 const { REST, Routes, MessageFlags, Client, Events, GatewayIntentBits, SlashCommandBuilder, ThreadAutoArchiveDuration, ChannelType, ButtonBuilder, ActionRowBuilder, ButtonStyle, FileComponent, PermissionsBitField } = require('discord.js');
 const { clientID, token } = require('./config.json');
 const { TicketChannel, PingRole, StaffRole } = require('./database.js');
@@ -107,6 +106,8 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
+// For pinging when the first message is sent
+
 const ticketMonitor = new Set();
 client.on('messageCreate', async message => {
   // Ignore bot messages
@@ -116,7 +117,7 @@ client.on('messageCreate', async message => {
   // Only notify once per thread
   if (ticketMonitor.has(message.channel.id)) return;
 
-  // Check if this thread's parent channel is the configured support channel
+  // Check if this thread's parent channel is the configured ticket channel
   const ticketChannelConfig = await TicketChannel.findOne({ where: { server: message.guild.id } });
   if (!ticketChannelConfig || message.channel.parentId !== ticketChannelConfig.channelId) return;
 
@@ -125,13 +126,50 @@ client.on('messageCreate', async message => {
     ticketName = message.channel.name.split('-');
     ticketMonitor.add(message.channel.id);
     if (ticketName[4] == 'm') {
+      // If ticket is member opened
       await message.channel.send(`<@&${pingRoleConfig.roleId}>, a new ticket message has been received.`);
     } else {
+      // If ticket is staff opened
       await message.channel.send(`<@${ticketName[5]}>, you have been added to this ticket so staff can communicate privately with you.`);
     }
   }
 });
 
+// Permissions checking
+
+async function hasStaffRole(interaction) {
+  const staffCheckRole = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
+  const staffCheckRoleId = staffCheckRole?.roleId;
+  // Check if the user has the staff role or is an administrator
+  if ((staffCheckRoleId && interaction.member.roles.cache.has(staffCheckRoleId)) || interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    return true;
+  } 
+  return false;
+}
+
+// Thread creation
+
+async function openTicket(interaction, user, channel, isoDateOnly, ticketType) {
+      thread = await channel.threads.create({
+      name: `${user.username}-${isoDateOnly}-${ticketType}-${user.id}`,
+      autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
+    	type: ChannelType.PrivateThread, 
+      reason: 'Opening support ticket for user'
+    });
+    const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.member.guild.id } });
+    if (ticketType == 'm') {
+      if (pingRoleConfig) {
+        await thread.send(`<@${user.id}>, thank you for contacting server staff! Let them know why you've opened a ticket and they'll get back to you as soon as possible. **Once you send a message, a ping will be sent to notify them.**`)
+      } else {
+        await thread.send(`Thank you for contacting server staff! Let them know why you've opened a ticket and they'll get back to you as soon as possible.`)
+      }
+   } else {
+    await thread.send(`<@&${pingRoleConfig.roleId}>, this ticket has been opened for ${user.username}. **Once you send a message, they will be added to the thread and notified.**`)
+   }
+    interaction.reply({ content: `Support Cricket has opened a ticket for you. View it here: ${thread}`, flags: MessageFlags.Ephemeral })
+}
+
+// ticket config
 
 async function cmdConfig(interaction) {
   if (!await hasStaffRole(interaction)) {
@@ -151,6 +189,8 @@ async function cmdConfig(interaction) {
     flags: MessageFlags.Ephemeral
   });
 }
+
+// ticket ping
 
 async function cmdPing(interaction) {
     if (!await hasStaffRole(interaction)) {
@@ -178,8 +218,11 @@ async function cmdPing(interaction) {
       console.error('Error setting new ping role:', error)
     }
     interaction.reply({ content: `Ping role has been set to ${pingRoleConfig}`, flags: MessageFlags.Ephemeral})
+    console.log(`Ping role was set to ${pingRoleConfig} by ${interaction.user}`)
   }
 }
+
+// ticket staff
 
 async function cmdStaff(interaction) {
   if (interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
@@ -200,7 +243,8 @@ async function cmdStaff(interaction) {
     } catch (error) {
       console.error('Error setting new staff role:', error)
     }
-    interaction.reply({ content: `Staff role has been set to ${staffRoleConfig}`, flags: MessageFlags.Ephemeral})
+    interaction.reply({ content: `Staff role has been set to ${staffRoleConfig}`, flags: MessageFlags.Ephemeral});
+    console.log(`Staff role was set to ${staffRoleConfig} by ${interaction.user}`)
   } else {
     interaction.reply({ 
       content: 'You need admin permissions to set the staff role.', 
@@ -209,15 +253,7 @@ async function cmdStaff(interaction) {
   }
 }
 
-async function hasStaffRole(interaction) {
-  const staffCheckRole = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
-  const staffCheckRoleId = staffCheckRole?.roleId;
-  // Check if the user has the staff role or is an administrator
-  if ((staffCheckRoleId && interaction.member.roles.cache.has(staffCheckRoleId)) || interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-    return true;
-  } 
-  return false;
-}
+// ticket open
 
 async function cmdOpen(interaction, targetUser) {
   if (!targetUser) { targetUser = interaction.options.getUser('user', false) }
@@ -253,6 +289,8 @@ async function cmdOpen(interaction, targetUser) {
   }
 }
 
+// Ticket opening via button
+
 async function btnCmdOpenTicket(interaction) {
   const user = interaction.user;
   const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.member.guild.id } });
@@ -270,25 +308,7 @@ async function btnCmdOpenTicket(interaction) {
   }  
 }
 
-async function openTicket(interaction, user, channel, isoDateOnly, ticketType) {
-      thread = await channel.threads.create({
-      name: `${user.username}-${isoDateOnly}-${ticketType}-${user.id}`,
-      autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
-    	type: ChannelType.PrivateThread, 
-      reason: 'Opening support ticket for user'
-    });
-    const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.member.guild.id } });
-    if (ticketType == 'm') {
-      if (pingRoleConfig) {
-        await thread.send(`<@${user.id}>, thank you for contacting server staff! Let them know why you've opened a ticket and they'll get back to you as soon as possible. **Once you send a message, a ping will be sent to notify them.**`)
-      } else {
-        await thread.send(`Thank you for contacting server staff! Let them know why you've opened a ticket and they'll get back to you as soon as possible.`)
-      }
-   } else {
-    await thread.send(`<@&${pingRoleConfig.roleId}>, this ticket has been opened for ${user.username}. **Once you send a message, they will be added to the thread and notified.**`)
-   }
-    interaction.reply({ content: `Support Cricket has opened a ticket for you. View it here: ${thread}`, flags: MessageFlags.Ephemeral })
-}
+// ticket channel
 
 async function cmdChannel(interaction) {
   if (!await hasStaffRole(interaction)) {
@@ -321,7 +341,8 @@ async function cmdChannel(interaction) {
   } catch (error) {
     console.error('Error setting channel:', error)
   }
-  interaction.reply({ content: `Ticket channel has been set to ${channel}`, flags: MessageFlags.Ephemeral})
+  interaction.reply({ content: `Ticket channel has been set to ${channel}`, flags: MessageFlags.Ephemeral});
+  console.log(`Ticket channel was set to ${ticketChannelConfig} by ${interaction.user}`);
   const btnOpenTicket = new ButtonBuilder()
     .setCustomId('btnOpenTicket')
     .setLabel('Open a ticket')
@@ -329,6 +350,8 @@ async function cmdChannel(interaction) {
   const row = new ActionRowBuilder().addComponents(btnOpenTicket);
   btnOpenTicketMsg = channel.send({content: 'You can click the button below or use `/ticket open` to open a ticket! A private thread will be created where you can communicate with server staff.', components: [row], withResponse: true})
 }
+
+// ticket close
 
 async function cmdClose(interaction) {
   if (interaction.channel.isThread()) {
@@ -341,13 +364,9 @@ async function cmdClose(interaction) {
   }
 }
 
-// When the client is ready, run this code (only once).
-// The distinction between `client: Client<boolean>` and `readyClient: Client<true>` is important for TypeScript developers.
-// It makes some properties non-nullable.
 client.once(Events.ClientReady, async (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
   await registerCommands();
 });
 
-// Log in to Discord with your client's token
 client.login(token);
