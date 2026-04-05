@@ -138,7 +138,7 @@ client.on('messageCreate', async message => {
 // Permissions checking
 
 async function hasStaffRole(interaction) {
-  const staffCheckRole = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
+  const staffCheckRole = await StaffRole.findOne({ where: { server: interaction.guildId } });
   const staffCheckRoleId = staffCheckRole?.roleId;
   // Check if the user has the staff role or is an administrator
   const permissions = new PermissionsBitField(interaction.member.permissions);
@@ -157,7 +157,7 @@ async function openTicket(interaction, user, channel, isoDateOnly, ticketType) {
     	type: ChannelType.PrivateThread, 
       reason: 'Opening support ticket for user'
     });
-    const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.member.guild.id } });
+    const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.guildId } });
     if (ticketType == 'm') {
       if (pingRoleConfig) {
         await thread.send(`<@${user.id}>, thank you for contacting server staff! Let them know why you've opened a ticket and they'll get back to you as soon as possible. **Once you send a message, a ping will be sent to notify them.**`)
@@ -179,9 +179,9 @@ async function cmdConfig(interaction) {
       flags: MessageFlags.Ephemeral
     });
   }
-  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.member.guild.id } });
-  const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.member.guild.id } });
-  const staffRoleConfig = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
+  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.guildId } });
+  const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.guildId } });
+  const staffRoleConfig = await StaffRole.findOne({ where: { server: interaction.guildId } });
   const pingRoleDisplay = pingRoleConfig ? `<@&${pingRoleConfig.roleId}>` : 'Required but not set';
   const ticketChannelDisplay = ticketChannelConfig ? `<#${ticketChannelConfig.channelId}>` : 'Required but not set';
   const staffRoleDisplay = staffRoleConfig ? `<@&${staffRoleConfig.roleId}>` : 'Not set';
@@ -204,7 +204,7 @@ async function cmdPing(interaction) {
   const pingRoleOld = await PingRole.findOne();
   if (pingRoleOld || !pingRoleConfig) {
     try {
-      PingRole.destroy({ where: { server: interaction.member.guild.id } });
+      PingRole.destroy({ where: { server: interaction.guildId } });
     } catch (error) {
       console.error('Error removing previous ping role from configuration:', error)
     }
@@ -213,7 +213,7 @@ async function cmdPing(interaction) {
     try {
       await PingRole.create({
         roleId: pingRoleConfig.id,
-        server: interaction.member.guild.id
+        server: interaction.guildId
       })
     } catch (error) {
       console.error('Error setting new ping role:', error)
@@ -229,10 +229,10 @@ async function cmdStaff(interaction) {
   const permissions = new PermissionsBitField(interaction.member.permissions);
   if (permissions.has(PermissionsBitField.Flags.Administrator)) {
     const staffRoleConfig = interaction.options.getRole('role', true)
-    const staffRoleOld = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
+    const staffRoleOld = await StaffRole.findOne({ where: { server: interaction.guildId } });
     if (staffRoleOld) {
       try {
-        StaffRole.destroy({ where: { server: interaction.member.guild.id } });
+        StaffRole.destroy({ where: { server: interaction.guildId } });
       } catch (error) {
         console.error('Error removing staff role from configuration:', error)
       }
@@ -240,7 +240,7 @@ async function cmdStaff(interaction) {
     try {
       await StaffRole.create({
         roleId: staffRoleConfig.id,
-        server: interaction.member.guild.id
+        server: interaction.guildId
       }) 
     } catch (error) {
       console.error('Error setting new staff role:', error)
@@ -269,11 +269,11 @@ async function cmdOpen(interaction, targetUser) {
   }
 
   const user = targetUser || interaction.user;
-  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.member.guild.id } });
+  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.guildId } });
   if (!ticketChannelConfig) {
     return interaction.reply({ content: 'Please set a channel for Support Cricket tickets with `/ticket channel`', flags: MessageFlags.Ephemeral })
   }
-  const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.member.guild.id } });
+  const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.guildId } });
   if (!pingRoleConfig) {
     interaction.reply({ content: 'Please set a ping role for Support Cricket tickets with `/ticket ping`', flags: MessageFlags.Ephemeral })
   }
@@ -295,7 +295,7 @@ async function cmdOpen(interaction, targetUser) {
 
 async function btnCmdOpenTicket(interaction) {
   const user = interaction.user;
-  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.member.guild.id } });
+  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.guildId } });
   if (!ticketChannelConfig) {
     return interaction.reply({ content: 'Please set a channel for Support Cricket tickets with `/ticket channel`', flags: MessageFlags.Ephemeral })
   }
@@ -319,7 +319,7 @@ async function cmdChannel(interaction) {
       flags: MessageFlags.Ephemeral 
     });
   }
-  const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.member.guild.id } });
+  const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.guildId } });
   if (!pingRoleConfig) {
     return interaction.reply({ content: 'Please set a ping role for Support Cricket tickets with `/ticket ping` to use this command.', flags: MessageFlags.Ephemeral })
   }
@@ -327,7 +327,7 @@ async function cmdChannel(interaction) {
   if (channel.type !== ChannelType.GuildText) {
     return interaction.reply({ content: 'Please select a text channel.', flags: MessageFlags.Ephemeral })
   }
-  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.member.guild.id } });
+  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.guildId } });
   if (ticketChannelConfig) {
     try {
       ticketChannelConfig.destroy();
@@ -338,7 +338,7 @@ async function cmdChannel(interaction) {
   try {
     await TicketChannel.create({
       channelId: channel.id,
-      server: interaction.member.guild.id
+      server: interaction.guildId
     }) 
   } catch (error) {
     console.error('Error setting channel:', error)
