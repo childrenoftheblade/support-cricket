@@ -218,7 +218,7 @@ async function cmdPing(interaction) {
     } catch (error) {
       console.error('Error setting new ping role:', error)
     }
-    interaction.reply({ content: `Ping role has been set to ${pingRoleConfig}`, flags: MessageFlags.Ephemeral})
+    interaction.reply({ content: `Ping role has been set to <@&${pingRoleConfig.id}>`, flags: MessageFlags.Ephemeral})
     console.log(`Ping role was set to ${pingRoleConfig} by ${interaction.user}`)
   }
 }
@@ -245,7 +245,7 @@ async function cmdStaff(interaction) {
     } catch (error) {
       console.error('Error setting new staff role:', error)
     }
-    interaction.reply({ content: `Staff role has been set to ${staffRoleConfig}`, flags: MessageFlags.Ephemeral});
+    interaction.reply({ content: `Staff role has been set to <@&${staffRoleConfig.id}>`, flags: MessageFlags.Ephemeral});
     console.log(`Staff role was set to ${staffRoleConfig} by ${interaction.user}`)
   } else {
     interaction.reply({ 
