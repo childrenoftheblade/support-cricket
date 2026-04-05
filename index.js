@@ -221,7 +221,6 @@ async function cmdPing(interaction) {
       console.error('Error setting new ping role:', error)
     }
     interaction.reply({ content: `Ping role has been set to <@&${pingRoleConfig.id}>`, flags: MessageFlags.Ephemeral})
-    console.log(`Ping role was set to ${pingRoleConfig} by ${interaction.user}`)
   }
 }
 
@@ -248,7 +247,6 @@ async function cmdStaff(interaction) {
       console.error('Error setting new staff role:', error)
     }
     interaction.reply({ content: `Staff role has been set to <@&${staffRoleConfig.id}>`, flags: MessageFlags.Ephemeral});
-    console.log(`Staff role was set to ${staffRoleConfig} by ${interaction.user}`)
   } else {
     interaction.reply({ 
       content: 'You need admin permissions to set the staff role.', 
@@ -347,7 +345,6 @@ async function cmdChannel(interaction) {
     console.error('Error setting channel:', error)
   }
   await interaction.reply({ content: `Ticket channel has been set to <#${channel.id}>`, flags: MessageFlags.Ephemeral});
-  console.log(`Ticket channel was set to ${channel.id} by ${interaction.user}`);
   const btnOpenTicket = new ButtonBuilder()
     .setCustomId('btnOpenTicket')
     .setLabel('Open a ticket')
