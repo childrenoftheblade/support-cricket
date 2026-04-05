@@ -141,7 +141,8 @@ async function hasStaffRole(interaction) {
   const staffCheckRole = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
   const staffCheckRoleId = staffCheckRole?.roleId;
   // Check if the user has the staff role or is an administrator
-  if ((staffCheckRoleId && interaction.member.roles.cache.has(staffCheckRoleId)) || interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+  const permissions = new PermissionsBitField(interaction.member.permissions);
+  if ((staffCheckRoleId && interaction.member.roles.cache.has(staffCheckRoleId)) || permissions.has(PermissionsBitField.Flags.Administrator)) {
     return true;
   } 
   return false;
@@ -225,7 +226,8 @@ async function cmdPing(interaction) {
 // ticket staff
 
 async function cmdStaff(interaction) {
-  if (interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+  const permissions = new PermissionsBitField(interaction.member.permissions);
+  if (permissions.has(PermissionsBitField.Flags.Administrator)) {
     const staffRoleConfig = interaction.options.getRole('role', true)
     const staffRoleOld = await StaffRole.findOne({ where: { server: interaction.member.guild.id } });
     if (staffRoleOld) {
