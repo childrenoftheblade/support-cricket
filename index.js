@@ -352,7 +352,7 @@ async function cmdChannel(interaction) {
     .setLabel('Open a ticket')
     .setStyle(ButtonStyle.Primary)
   const row = new ActionRowBuilder().addComponents(btnOpenTicket);
-  btnOpenTicketMsg = ticketChannelConfig.send({content: 'You can click the button below or use `/ticket open` to open a ticket! A private thread will be created where you can communicate with server staff.', components: [row], withResponse: true})
+  ticketChannelConfig.send({content: 'You can click the button below or use `/ticket open` to open a ticket! A private thread will be created where you can communicate with server staff.', components: [row], withResponse: true})
 }
 
 // ticket close
