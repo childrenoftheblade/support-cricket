@@ -142,7 +142,9 @@ async function hasStaffRole(interaction) {
   const staffCheckRoleId = staffCheckRole?.roleId;
   // Check if the user has the staff role or is an administrator
   const permissions = new PermissionsBitField(interaction.member.permissions);
-  if ((staffCheckRoleId && interaction.member.roles.cache.has(staffCheckRoleId)) || permissions.has(PermissionsBitField.Flags.Administrator)) {
+  const memberRoles = interaction.member.roles;
+  const hasStaffRole = memberRoles.cache ? memberRoles.cache.has(staffCheckRoleId) : memberRoles.includes(staffCheckRoleId);
+  if (hasStaffRole || permissions.has(PermissionsBitField.Flags.Administrator)) {
     return true;
   } 
   return false;
