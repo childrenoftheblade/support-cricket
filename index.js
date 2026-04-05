@@ -325,10 +325,11 @@ async function cmdChannel(interaction) {
   if (!pingRoleConfig) {
     return interaction.reply({ content: 'Please set a ping role for Support Cricket tickets with `/ticket ping` to use this command.', flags: MessageFlags.Ephemeral })
   }
-  const channel = interaction.options.getChannel('channel', true)
-  if (channel.type !== ChannelType.GuildText) {
+  const channelOption = interaction.options.getChannel('channel', true)
+  if (channelOption.type !== ChannelType.GuildText) {
     return interaction.reply({ content: 'Please select a text channel.', flags: MessageFlags.Ephemeral })
   }
+  const channel = await client.channels.fetch(channelOption.id);
   const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.guildId } });
   if (ticketChannelConfig) {
     try {
@@ -346,7 +347,7 @@ async function cmdChannel(interaction) {
     console.error('Error setting channel:', error)
   }
   await interaction.reply({ content: `Ticket channel has been set to <#${channel.id}>`, flags: MessageFlags.Ephemeral});
-  console.log(`Ticket channel was set to ${ticketChannelConfig} by ${interaction.user}`);
+  console.log(`Ticket channel was set to ${channel.id} by ${interaction.user}`);
   const btnOpenTicket = new ButtonBuilder()
     .setCustomId('btnOpenTicket')
     .setLabel('Open a ticket')
