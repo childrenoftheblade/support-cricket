@@ -345,14 +345,14 @@ async function cmdChannel(interaction) {
   } catch (error) {
     console.error('Error setting channel:', error)
   }
-  interaction.reply({ content: `Ticket channel has been set to ${channel}`, flags: MessageFlags.Ephemeral});
+  interaction.reply({ content: `Ticket channel has been set to <#${ticketChannelConfig}>`, flags: MessageFlags.Ephemeral});
   console.log(`Ticket channel was set to ${ticketChannelConfig} by ${interaction.user}`);
   const btnOpenTicket = new ButtonBuilder()
     .setCustomId('btnOpenTicket')
     .setLabel('Open a ticket')
     .setStyle(ButtonStyle.Primary)
   const row = new ActionRowBuilder().addComponents(btnOpenTicket);
-  btnOpenTicketMsg = channel.send({content: 'You can click the button below or use `/ticket open` to open a ticket! A private thread will be created where you can communicate with server staff.', components: [row], withResponse: true})
+  btnOpenTicketMsg = ticketChannelConfig.send({content: 'You can click the button below or use `/ticket open` to open a ticket! A private thread will be created where you can communicate with server staff.', components: [row], withResponse: true})
 }
 
 // ticket close
