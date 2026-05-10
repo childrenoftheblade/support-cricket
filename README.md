@@ -27,4 +27,4 @@ Replace `YOUR_BOT_TOKEN` and `YOUR_BOT_ID` with their respective credentials.
 
 You can view the current configuration with `/ticket config`. Members can open tickets either by using the button in the set ticket channel or using `/ticket open`. If you want to open a ticket for another user, there is an optional user field. To close a ticket and make it read-only, use `/ticket close`.
 ## Support
-DM me on Discord @childrenoftheblade or create an issue. Feel free to request features as well.
+DM me on Discord @zeebiedeebie or create an issue. Feel free to request features as well.
