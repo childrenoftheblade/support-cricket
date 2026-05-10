@@ -8,7 +8,7 @@ Support Cricket is a Discord bot that uses private threads ('tickets') to let st
 - Set a staff role that can manage configuration
 - Only pings the other party once the first message is sent, letting you write out an explanation message first
 ## Setup
-1. Clone this repository with `git clone https://github.com/childrenoftheblade/support-crickets.git`
+1. Clone this repository with `git clone https://github.com/childrenoftheblade/support-cricket.git`
 2. Install dependencies with `npm install`
 3. Create a `config.json` file with the following content:
 ```
