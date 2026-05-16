@@ -116,7 +116,7 @@ client.on('messageCreate', async message => {
   if (!message.channel.isThread() || message.channel.type !== ChannelType.PrivateThread) return;
   // Only notify once per thread
   if (ticketMonitor.has(message.channel.id)) return;
-  const message = await message.channel.messages.fetch({ limit: 3 });
+  const messages = await message.channel.messages.fetch({ limit: 3 });
   if (messages.size >= 3) return;
 
   // Check if this thread's parent channel is the configured ticket channel
