@@ -116,6 +116,8 @@ client.on('messageCreate', async message => {
   if (!message.channel.isThread() || message.channel.type !== ChannelType.PrivateThread) return;
   // Only notify once per thread
   if (ticketMonitor.has(message.channel.id)) return;
+  const message = await message.channel.messages.fetch({ limit: 3 });
+  if (messages.size >= 3) return;
 
   // Check if this thread's parent channel is the configured ticket channel
   const ticketChannelConfig = await TicketChannel.findOne({ where: { server: message.guild.id } });
@@ -123,7 +125,7 @@ client.on('messageCreate', async message => {
 
   const pingRoleConfig = await PingRole.findOne({ where: { server: message.guild.id } });
   if (pingRoleConfig) {
-    ticketName = message.channel.name.split('-');
+    const ticketName = message.channel.name.split('-');
     ticketMonitor.add(message.channel.id);
     if (ticketName[4] == 'm') {
       // If ticket is member opened
@@ -139,37 +141,42 @@ client.on('messageCreate', async message => {
 
 async function hasStaffRole(interaction) {
   const staffCheckRole = await StaffRole.findOne({ where: { server: interaction.guildId } });
-  const staffCheckRoleId = staffCheckRole?.roleId;
-  // Check if the user has the staff role or is an administrator
-  const permissions = new PermissionsBitField(interaction.member.permissions);
-  const memberRoles = interaction.member.roles;
-  const hasStaffRole = memberRoles.cache ? memberRoles.cache.has(staffCheckRoleId) : memberRoles.includes(staffCheckRoleId);
-  if (hasStaffRole || permissions.has(PermissionsBitField.Flags.Administrator)) {
-    return true;
-  } 
+  if (staffCheckRole) {
+    const staffCheckRoleId = staffCheckRole?.roleId;
+    // Check if the user has the staff role or is an administrator
+    const permissions = new PermissionsBitField(interaction.member.permissions);
+    const memberRoles = interaction.member.roles;
+    const hasStaffRole = memberRoles.cache ? memberRoles.cache.has(staffCheckRoleId) : memberRoles.includes(staffCheckRoleId);
+    if (hasStaffRole || permissions.has(PermissionsBitField.Flags.Administrator)) {
+      return true;
+    } 
+  }
+  await interaction.reply({ content: 'Please set a staff role for Support Cricket tickets with `/ticket staff`', flags: MessageFlags.Ephemeral })
+
   return false;
 }
 
 // Thread creation
 
 async function openTicket(interaction, user, channel, isoDateOnly, ticketType) {
-      thread = await channel.threads.create({
+      const thread = await channel.threads.create({
       name: `${user.username}-${isoDateOnly}-${ticketType}-${user.id}`,
       autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
     	type: ChannelType.PrivateThread, 
       reason: 'Opening support ticket for user'
     });
     const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.guildId } });
-    if (ticketType == 'm') {
-      if (pingRoleConfig) {
+    if (pingRoleConfig) {
+      if (ticketType == 'm') {
         await thread.send(`<@${user.id}>, thank you for contacting server staff! Let them know why you've opened a ticket and they'll get back to you as soon as possible. **Once you send a message, a ping will be sent to notify them.**`)
       } else {
-        await thread.send(`Thank you for contacting server staff! Let them know why you've opened a ticket and they'll get back to you as soon as possible.`)
+        await thread.send(`<@&${pingRoleConfig.roleId}>, this ticket has been opened for ${user.username}. **Once you send a message, they will be added to the thread and notified.**`)
       }
-   } else {
-    await thread.send(`<@&${pingRoleConfig.roleId}>, this ticket has been opened for ${user.username}. **Once you send a message, they will be added to the thread and notified.**`)
-   }
-    interaction.reply({ content: `Support Cricket has opened a ticket for you. View it here: ${thread}`, flags: MessageFlags.Ephemeral })
+
+      await interaction.reply({ content: `Support Cricket has opened a ticket for you. View it here: ${thread}`, flags: MessageFlags.Ephemeral })
+    } else {
+      await interaction.reply({ content: 'Please set a ping role for Support Cricket tickets with `/ticket ping`', flags: MessageFlags.Ephemeral })
+    }
 }
 
 // ticket config
@@ -203,10 +210,10 @@ async function cmdPing(interaction) {
       });
     }
   const pingRoleConfig = interaction.options.getRole('role', true)
-  const pingRoleOld = await PingRole.findOne();
+  const pingRoleOld = await PingRole.findOne({ where: { server: interaction.guildId } });
   if (pingRoleOld || !pingRoleConfig) {
     try {
-      PingRole.destroy({ where: { server: interaction.guildId } });
+      await PingRole.destroy({ where: { server: interaction.guildId } });
     } catch (error) {
       console.error('Error removing previous ping role from configuration:', error)
     }
@@ -220,7 +227,7 @@ async function cmdPing(interaction) {
     } catch (error) {
       console.error('Error setting new ping role:', error)
     }
-    interaction.reply({ content: `Ping role has been set to <@&${pingRoleConfig.id}>`, flags: MessageFlags.Ephemeral})
+    await interaction.reply({ content: `Ping role has been set to <@&${pingRoleConfig.id}>`, flags: MessageFlags.Ephemeral})
   }
 }
 
@@ -233,7 +240,7 @@ async function cmdStaff(interaction) {
     const staffRoleOld = await StaffRole.findOne({ where: { server: interaction.guildId } });
     if (staffRoleOld) {
       try {
-        StaffRole.destroy({ where: { server: interaction.guildId } });
+        await StaffRole.destroy({ where: { server: interaction.guildId } });
       } catch (error) {
         console.error('Error removing staff role from configuration:', error)
       }
@@ -246,9 +253,9 @@ async function cmdStaff(interaction) {
     } catch (error) {
       console.error('Error setting new staff role:', error)
     }
-    interaction.reply({ content: `Staff role has been set to <@&${staffRoleConfig.id}>`, flags: MessageFlags.Ephemeral});
+    await interaction.reply({ content: `Staff role has been set to <@&${staffRoleConfig.id}>`, flags: MessageFlags.Ephemeral});
   } else {
-    interaction.reply({ 
+    await interaction.reply({ 
       content: 'You need admin permissions to set the staff role.', 
       flags: MessageFlags.Ephemeral 
     });
@@ -275,7 +282,7 @@ async function cmdOpen(interaction, targetUser) {
   }
   const pingRoleConfig = await PingRole.findOne({ where: { server: interaction.guildId } });
   if (!pingRoleConfig) {
-    interaction.reply({ content: 'Please set a ping role for Support Cricket tickets with `/ticket ping`', flags: MessageFlags.Ephemeral })
+    return interaction.reply({ content: 'Please set a ping role for Support Cricket tickets with `/ticket ping`', flags: MessageFlags.Ephemeral });
   }
   const channel = client.channels.cache.get(ticketChannelConfig.channelId);
   if (channel) {
@@ -287,7 +294,7 @@ async function cmdOpen(interaction, targetUser) {
     }
     openTicket(interaction, user, channel, isoDateOnly, ticketType);
   } else {
-    interaction.reply({ content: 'Please set a channel for Support Cricket with `/ticket channel`', flags: MessageFlags.Ephemeral })
+    await interaction.reply({ content: 'Please set a channel for Support Cricket with `/ticket channel`', flags: MessageFlags.Ephemeral })
   }
 }
 
@@ -306,7 +313,7 @@ async function btnCmdOpenTicket(interaction) {
     let ticketType = 'm'; // button opened tickets can only be this type
     openTicket(interaction, user, channel, isoDateOnly, ticketType);
   } else {
-    interaction.reply({ content: 'Please set a channel for Support Cricket with `/ticket channel`', flags: MessageFlags.Ephemeral })
+    await interaction.reply({ content: 'Please set a channel for Support Cricket with `/ticket channel`', flags: MessageFlags.Ephemeral })
   }  
 }
 
@@ -331,7 +338,7 @@ async function cmdChannel(interaction) {
   const ticketChannelConfig = await TicketChannel.findOne({ where: { server: interaction.guildId } });
   if (ticketChannelConfig) {
     try {
-      ticketChannelConfig.destroy();
+      await ticketChannelConfig.destroy();
     } catch (error) {
       console.error('Error deleting channel:', error)
     }
@@ -357,7 +364,7 @@ async function cmdChannel(interaction) {
 
 async function cmdClose(interaction) {
   if (interaction.channel.isThread()) {
-    interaction.channel.setName('CLOSED-' + interaction.channel.name);
+    await interaction.channel.setName('CLOSED-' + interaction.channel.name);
     await interaction.reply({ content: 'Ticket has been closed.', flags: MessageFlags.Ephemeral });
     await interaction.channel.setLocked(true);
     await interaction.channel.setArchived(true);
@@ -369,11 +376,12 @@ async function cmdClose(interaction) {
 // Finding closed threads
 
 client.on('threadUpdate', async (oldThread, newThread) => {
-  if (newThread.archived && !newThread.name.startsWith('CLOSED-') ) {
-    newThread.setArchived(false)
-    newThread.setName('CLOSED-' + newThread.name);
-    newThread.setArchived(true)
-    newThread.setLocked(true)
+  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: message.guild.id } });
+  if (newThread.archived && !newThread.name.startsWith('CLOSED-') && newThread.parentId == ticketChannelConfig.channelId ) {
+    await newThread.setArchived(false)
+    await newThread.setName('CLOSED-' + newThread.name);
+    await newThread.setArchived(true)
+    await newThread.setLocked(true)
   }
 });
 
