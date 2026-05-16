@@ -366,6 +366,17 @@ async function cmdClose(interaction) {
   }
 }
 
+// Finding closed threads
+
+client.on('threadUpdate', async (oldThread, newThread) => {
+  if (newThread.archived && !newThread.name.startsWith('CLOSED-') ) {
+    newThread.setArchived(false)
+    newThread.setName('CLOSED-' + newThread.name);
+    newThread.setArchived(true)
+    newThread.setLocked(true)
+  }
+});
+
 client.once(Events.ClientReady, async (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
   await registerCommands();
