@@ -101,7 +101,7 @@ client.on('interactionCreate', async interaction => {
             }
     } else {
       if (interaction.isButton()) {
-        btnCmdOpenTicket(interaction, interaction.user);
+        await btnCmdOpenTicket(interaction);
       }
     }
 });
@@ -151,8 +151,6 @@ async function hasStaffRole(interaction) {
       return true;
     } 
   }
-  await interaction.reply({ content: 'Please set a staff role for Support Cricket tickets with `/ticket staff`', flags: MessageFlags.Ephemeral })
-
   return false;
 }
 
@@ -292,7 +290,7 @@ async function cmdOpen(interaction, targetUser) {
     if (targetUser) {
       ticketType = 's';
     }
-    openTicket(interaction, user, channel, isoDateOnly, ticketType);
+    await openTicket(interaction, user, channel, isoDateOnly, ticketType);
   } else {
     await interaction.reply({ content: 'Please set a channel for Support Cricket with `/ticket channel`', flags: MessageFlags.Ephemeral })
   }
@@ -311,7 +309,7 @@ async function btnCmdOpenTicket(interaction) {
     const now = new Date();
     const isoDateOnly = now.toISOString().split('T')[0];
     let ticketType = 'm'; // button opened tickets can only be this type
-    openTicket(interaction, user, channel, isoDateOnly, ticketType);
+    await openTicket(interaction, user, channel, isoDateOnly, ticketType);
   } else {
     await interaction.reply({ content: 'Please set a channel for Support Cricket with `/ticket channel`', flags: MessageFlags.Ephemeral })
   }  
@@ -376,8 +374,8 @@ async function cmdClose(interaction) {
 // Finding closed threads
 
 client.on('threadUpdate', async (oldThread, newThread) => {
-  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: message.guild.id } });
-  if (newThread.archived && !newThread.name.startsWith('CLOSED-') && newThread.parentId == ticketChannelConfig.channelId ) {
+  const ticketChannelConfig = await TicketChannel.findOne({ where: { server: newThread.guild.id } });
+  if (ticketChannelConfig && newThread.archived && !newThread.name.startsWith('CLOSED-') && newThread.parentId == ticketChannelConfig.channelId ) {
     await newThread.setArchived(false)
     await newThread.setName('CLOSED-' + newThread.name);
     await newThread.setArchived(true)
